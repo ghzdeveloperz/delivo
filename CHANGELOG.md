@@ -82,3 +82,41 @@ Todas as mudanças relevantes do Delivo serão registradas neste arquivo.
 - Corrigido tratamento de movimentos diagonais.
 - Corrigida direção dos gestos verticais.
 - Corrigida animação de números com múltiplos dígitos.
+
+### Milestone 004 — Photo Folders
+
+#### Added
+
+- Organização lógica de fotos em pastas.
+- Criação, renomeação e exclusão de pastas.
+- Seleção de pasta através do swipe horizontal da triagem.
+- Criação de pasta durante a própria triagem.
+- Persistência de `PhotoDecision.organized`.
+- Desfazer após organização.
+- Movimentação de fotos entre pastas.
+- Restauração de fotos organizadas para Não revisadas.
+- Definição de capa da pasta.
+- Grid de fotos agrupada por data.
+- Preview das pastas com mosaico de até três fotografias.
+- Busca por nome de pasta.
+- Criação de nova pasta integrada ao campo de busca.
+- Migration do banco para versão 2.
+- Testes do fluxo de pastas.
+
+#### Changed
+
+- Banco SQLite centralizado através de `AppDatabase`.
+- Repository de decisões passou a compartilhar a mesma instância de banco das pastas.
+- Swipe horizontal deixou de ser placeholder e passou a executar organização real.
+- Cards de pastas passaram a exibir previews fotográficos.
+- Tela de Pastas e seletor da triagem passaram a oferecer busca local.
+
+#### Fixed
+
+- Corrigido preenchimento das thumbnails no mosaico das pastas.
+- Corrigida restauração de fotos organizadas.
+- Corrigido desfazer da decisão `organized`.
+- Corrigida exclusão de pasta sem afetar arquivos físicos.
+- Corrigidos testes da `TriageSwipeCard` após alteração dos callbacks.
+- Corrigida atualização reativa das telas de pastas.
+- Suavizada a transição dos resultados durante buscas.

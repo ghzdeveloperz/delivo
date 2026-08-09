@@ -12,9 +12,9 @@ class TriageSwipeCard extends StatefulWidget {
     required this.enabled,
     required this.onFavorite,
     required this.onMarkForDeletion,
+    required this.onOrganize,
     required this.onDecisionCompleted,
     required this.onDecisionAnimationFailed,
-    required this.onOrganize,
     super.key,
   });
 
@@ -22,17 +22,19 @@ class TriageSwipeCard extends StatefulWidget {
   final bool enabled;
   final Future<bool> Function() onFavorite;
   final Future<bool> Function() onMarkForDeletion;
+  final Future<bool> Function() onOrganize;
   final Future<void> Function() onDecisionCompleted;
   final VoidCallback onDecisionAnimationFailed;
-  final Future<void> Function() onOrganize;
 
   @override
-  State<TriageSwipeCard> createState() => TriageSwipeCardState();
+  State<TriageSwipeCard> createState() =>
+      TriageSwipeCardState();
 }
 
 class TriageSwipeCardState extends State<TriageSwipeCard>
     with SingleTickerProviderStateMixin {
-  static const TriageGestureResolver _resolver = TriageGestureResolver();
+  static const TriageGestureResolver _resolver =
+      TriageGestureResolver();
 
   late final AnimationController _animationController;
 
@@ -44,18 +46,17 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
   void initState() {
     super.initState();
 
-    _animationController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 220),
-        )..addListener(() {
-          final animation = _offsetAnimation;
-          if (animation != null) {
-            setState(() {
-              _dragOffset = animation.value;
-            });
-          }
-        });
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    )..addListener(() {
+        final animation = _offsetAnimation;
+        if (animation != null) {
+          setState(() {
+            _dragOffset = animation.value;
+          });
+        }
+      });
   }
 
   @override
@@ -65,15 +66,21 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
   }
 
   Future<void> triggerFavorite() {
-    return _handleAction(TriageGestureAction.favorite);
+    return _handleAction(
+      TriageGestureAction.favorite,
+    );
   }
 
   Future<void> triggerDeletion() {
-    return _handleAction(TriageGestureAction.markForDeletion);
+    return _handleAction(
+      TriageGestureAction.markForDeletion,
+    );
   }
 
   Future<void> triggerOrganize() {
-    return _handleAction(TriageGestureAction.organize);
+    return _handleAction(
+      TriageGestureAction.organize,
+    );
   }
 
   void _onPanStart(DragStartDetails details) {
@@ -95,7 +102,9 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
     });
   }
 
-  Future<void> _onPanEnd(DragEndDetails details) async {
+  Future<void> _onPanEnd(
+    DragEndDetails details,
+  ) async {
     if (!widget.enabled || _handlingAction) {
       return;
     }
@@ -103,14 +112,18 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
     final action = _resolver.resolve(
       dx: _dragOffset.dx,
       dy: _dragOffset.dy,
-      velocityX: details.velocity.pixelsPerSecond.dx,
-      velocityY: details.velocity.pixelsPerSecond.dy,
+      velocityX:
+          details.velocity.pixelsPerSecond.dx,
+      velocityY:
+          details.velocity.pixelsPerSecond.dy,
     );
 
     await _handleAction(action);
   }
 
-  Future<void> _handleAction(TriageGestureAction action) async {
+  Future<void> _handleAction(
+    TriageGestureAction action,
+  ) async {
     if (_handlingAction || !widget.enabled) {
       return;
     }
@@ -121,20 +134,44 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
       case TriageGestureAction.cancel:
         await _animateBack();
 
-      case TriageGestureAction.organize:
-        await _animateBack();
-        if (mounted) {
-          await widget.onOrganize();
-        }
-
       case TriageGestureAction.favorite:
-        await _performDecision(action: action, persist: widget.onFavorite);
+        await _performDecision(
+          action: action,
+          persist: widget.onFavorite,
+        );
 
       case TriageGestureAction.markForDeletion:
         await _performDecision(
           action: action,
           persist: widget.onMarkForDeletion,
         );
+
+      case TriageGestureAction.organize:
+        final persisted = await widget.onOrganize();
+
+        if (!persisted || !mounted) {
+          await _animateBack();
+          widget.onDecisionAnimationFailed();
+          break;
+        }
+
+        final width = MediaQuery.sizeOf(context).width;
+        final direction =
+            _dragOffset.dx >= 0 ? 1.0 : -1.0;
+
+        await _animateTo(
+          Offset(direction * width * 1.25, 0),
+          duration:
+              const Duration(milliseconds: 190),
+          curve: Curves.easeInCubic,
+        );
+
+        if (mounted) {
+          await widget.onDecisionCompleted();
+          setState(() {
+            _dragOffset = Offset.zero;
+          });
+        }
     }
 
     _handlingAction = false;
@@ -154,14 +191,16 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
 
     final size = MediaQuery.sizeOf(context);
     final target = switch (action) {
-      TriageGestureAction.favorite => Offset(
-        _dragOffset.dx * 0.25,
-        size.height * 0.95,
-      ),
-      TriageGestureAction.markForDeletion => Offset(
-        _dragOffset.dx * 0.25,
-        -size.height * 0.95,
-      ),
+      TriageGestureAction.favorite =>
+        Offset(
+          _dragOffset.dx * 0.25,
+          size.height * 0.95,
+        ),
+      TriageGestureAction.markForDeletion =>
+        Offset(
+          _dragOffset.dx * 0.25,
+          -size.height * 0.95,
+        ),
       _ => Offset.zero,
     };
 
@@ -173,9 +212,6 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
 
     if (mounted) {
       await widget.onDecisionCompleted();
-    }
-
-    if (mounted) {
       setState(() {
         _dragOffset = Offset.zero;
       });
@@ -203,7 +239,12 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
     _offsetAnimation = Tween<Offset>(
       begin: _dragOffset,
       end: target,
-    ).animate(CurvedAnimation(parent: _animationController, curve: curve));
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: curve,
+      ),
+    );
 
     await _animationController.forward();
 
@@ -219,15 +260,20 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final rotation = (_dragOffset.dx / math.max(width, 1)) * 0.08;
-    final feedback = _feedbackForOffset(_dragOffset);
+    final rotation =
+        (_dragOffset.dx / math.max(width, 1)) * 0.08;
+    final feedback =
+        _feedbackForOffset(_dragOffset);
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onPanStart: widget.enabled ? _onPanStart : null,
-      onPanUpdate: widget.enabled ? _onPanUpdate : null,
+      onPanStart:
+          widget.enabled ? _onPanStart : null,
+      onPanUpdate:
+          widget.enabled ? _onPanUpdate : null,
       onPanEnd: widget.enabled ? _onPanEnd : null,
-      onPanCancel: widget.enabled ? _animateBack : null,
+      onPanCancel:
+          widget.enabled ? _animateBack : null,
       child: Transform.translate(
         offset: _dragOffset,
         child: Transform.rotate(
@@ -237,9 +283,13 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const ColoredBox(color: Colors.black),
+                const ColoredBox(
+                  color: Colors.black,
+                ),
                 widget.child,
-                _SwipeFeedbackOverlay(feedback: feedback),
+                _SwipeFeedbackOverlay(
+                  feedback: feedback,
+                ),
               ],
             ),
           ),
@@ -248,10 +298,16 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
     );
   }
 
-  _SwipeFeedback _feedbackForOffset(Offset offset) {
+  _SwipeFeedback _feedbackForOffset(
+    Offset offset,
+  ) {
     final progress = math.min(
       1.0,
-      math.max(offset.dx.abs(), offset.dy.abs()) / _resolver.distanceThreshold,
+      math.max(
+            offset.dx.abs(),
+            offset.dy.abs(),
+          ) /
+          _resolver.distanceThreshold,
     );
 
     if (progress < 0.12) {
@@ -259,9 +315,11 @@ class TriageSwipeCardState extends State<TriageSwipeCard>
     }
 
     final horizontal =
-        offset.dx.abs() >= offset.dy.abs() * _resolver.dominanceRatio;
+        offset.dx.abs() >=
+        offset.dy.abs() * _resolver.dominanceRatio;
     final vertical =
-        offset.dy.abs() >= offset.dx.abs() * _resolver.dominanceRatio;
+        offset.dy.abs() >=
+        offset.dx.abs() * _resolver.dominanceRatio;
 
     if (horizontal) {
       return _SwipeFeedback(
@@ -309,12 +367,12 @@ final class _SwipeFeedback {
   }) : visible = true;
 
   const _SwipeFeedback.none()
-    : label = '',
-      icon = Icons.circle,
-      color = Colors.transparent,
-      alignment = Alignment.center,
-      progress = 0,
-      visible = false;
+      : label = '',
+        icon = Icons.circle,
+        color = Colors.transparent,
+        alignment = Alignment.center,
+        progress = 0,
+        visible = false;
 
   final String label;
   final IconData icon;
@@ -325,7 +383,9 @@ final class _SwipeFeedback {
 }
 
 class _SwipeFeedbackOverlay extends StatelessWidget {
-  const _SwipeFeedbackOverlay({required this.feedback});
+  const _SwipeFeedbackOverlay({
+    required this.feedback,
+  });
 
   final _SwipeFeedback feedback;
 
@@ -342,7 +402,10 @@ class _SwipeFeedbackOverlay extends StatelessWidget {
             begin: feedback.alignment,
             end: -feedback.alignment,
             colors: [
-              feedback.color.withValues(alpha: 0.28 * feedback.progress),
+              feedback.color.withValues(
+                alpha:
+                    0.28 * feedback.progress,
+              ),
               Colors.transparent,
             ],
           ),
@@ -354,28 +417,42 @@ class _SwipeFeedbackOverlay extends StatelessWidget {
             child: Opacity(
               opacity: feedback.progress,
               child: Container(
-                padding: const EdgeInsets.symmetric(
+                padding:
+                    const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 11,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.62),
-                  borderRadius: BorderRadius.circular(999),
+                  color: Colors.black.withValues(
+                    alpha: 0.62,
+                  ),
+                  borderRadius:
+                      BorderRadius.circular(999),
                   border: Border.all(
-                    color: feedback.color.withValues(alpha: 0.9),
+                    color: feedback.color.withValues(
+                      alpha: 0.9,
+                    ),
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(feedback.icon, size: 20, color: feedback.color),
+                    Icon(
+                      feedback.icon,
+                      size: 20,
+                      color: feedback.color,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       feedback.label,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelLarge
+                          ?.copyWith(
+                            color: Colors.white,
+                            fontWeight:
+                                FontWeight.w700,
+                          ),
                     ),
                   ],
                 ),

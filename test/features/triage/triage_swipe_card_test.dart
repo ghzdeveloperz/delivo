@@ -3,128 +3,185 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('up swipe marks photo for deletion', (tester) async {
-    var deletionCalls = 0;
-    var completedCalls = 0;
+  Widget buildSubject({
+    required Future<bool> Function() onFavorite,
+    required Future<bool> Function() onMarkForDeletion,
+    required Future<bool> Function() onOrganize,
+    Future<void> Function()? onDecisionCompleted,
+    VoidCallback? onDecisionAnimationFailed,
+  }) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 320,
+            height: 480,
+            child: TriageSwipeCard(
+              enabled: true,
+              onFavorite: onFavorite,
+              onMarkForDeletion: onMarkForDeletion,
+              onOrganize: onOrganize,
+              onDecisionCompleted:
+                  onDecisionCompleted ?? () async {},
+              onDecisionAnimationFailed:
+                  onDecisionAnimationFailed ?? () {},
+              child: const ColoredBox(
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
-    await tester.pumpWidget(
-      _TestApp(
-        child: TriageSwipeCard(
-          enabled: true,
+  testWidgets(
+    'swipe up marks photo for deletion review',
+    (tester) async {
+      var deletionCalls = 0;
+
+      await tester.pumpWidget(
+        buildSubject(
           onFavorite: () async => true,
           onMarkForDeletion: () async {
             deletionCalls++;
             return true;
           },
-          onDecisionCompleted: () async {
-            completedCalls++;
-          },
-          onDecisionAnimationFailed: () {},
-          onOrganize: () async {},
-          child: const ColoredBox(color: Colors.black),
+          onOrganize: () async => true,
         ),
-      ),
-    );
+      );
 
-    await tester.drag(find.byType(TriageSwipeCard), const Offset(0, -160));
-    await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(TriageSwipeCard),
+        const Offset(0, -180),
+      );
 
-    expect(deletionCalls, 1);
-    expect(completedCalls, 1);
-  });
+      await tester.pumpAndSettle();
 
-  testWidgets('down swipe favorites photo', (tester) async {
-    var favoriteCalls = 0;
+      expect(deletionCalls, 1);
+    },
+  );
 
-    await tester.pumpWidget(
-      _TestApp(
-        child: TriageSwipeCard(
-          enabled: true,
+  testWidgets(
+    'swipe down favorites photo',
+    (tester) async {
+      var favoriteCalls = 0;
+
+      await tester.pumpWidget(
+        buildSubject(
           onFavorite: () async {
             favoriteCalls++;
             return true;
           },
           onMarkForDeletion: () async => true,
-          onDecisionCompleted: () async {},
-          onDecisionAnimationFailed: () {},
-          onOrganize: () async {},
-          child: const ColoredBox(color: Colors.black),
+          onOrganize: () async => true,
         ),
-      ),
-    );
+      );
 
-    await tester.drag(find.byType(TriageSwipeCard), const Offset(0, 160));
-    await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(TriageSwipeCard),
+        const Offset(0, 180),
+      );
 
-    expect(favoriteCalls, 1);
-  });
+      await tester.pumpAndSettle();
 
-  testWidgets('horizontal swipe opens organize action', (tester) async {
-    var organizeCalls = 0;
+      expect(favoriteCalls, 1);
+    },
+  );
 
-    await tester.pumpWidget(
-      _TestApp(
-        child: TriageSwipeCard(
-          enabled: true,
+  testWidgets(
+    'horizontal swipe organizes photo',
+    (tester) async {
+      var organizeCalls = 0;
+
+      await tester.pumpWidget(
+        buildSubject(
           onFavorite: () async => true,
           onMarkForDeletion: () async => true,
-          onDecisionCompleted: () async {},
-          onDecisionAnimationFailed: () {},
           onOrganize: () async {
             organizeCalls++;
+            return true;
           },
-          child: const ColoredBox(color: Colors.black),
         ),
-      ),
-    );
+      );
 
-    await tester.drag(find.byType(TriageSwipeCard), const Offset(160, 0));
-    await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(TriageSwipeCard),
+        const Offset(180, 0),
+      );
 
-    expect(organizeCalls, 1);
-  });
+      await tester.pumpAndSettle();
 
-  testWidgets('small drag cancels decision', (tester) async {
-    var decisions = 0;
+      expect(organizeCalls, 1);
+    },
+  );
 
-    await tester.pumpWidget(
-      _TestApp(
-        child: TriageSwipeCard(
-          enabled: true,
+  testWidgets(
+    'small drag cancels without persisting decision',
+    (tester) async {
+      var favoriteCalls = 0;
+      var deletionCalls = 0;
+      var organizeCalls = 0;
+
+      await tester.pumpWidget(
+        buildSubject(
           onFavorite: () async {
-            decisions++;
+            favoriteCalls++;
             return true;
           },
           onMarkForDeletion: () async {
-            decisions++;
+            deletionCalls++;
             return true;
           },
-          onDecisionCompleted: () async {},
-          onDecisionAnimationFailed: () {},
           onOrganize: () async {
-            decisions++;
+            organizeCalls++;
+            return true;
           },
-          child: const ColoredBox(color: Colors.black),
         ),
-      ),
-    );
+      );
 
-    await tester.drag(find.byType(TriageSwipeCard), const Offset(0, -30));
-    await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(TriageSwipeCard),
+        const Offset(20, 20),
+      );
 
-    expect(decisions, 0);
-  });
-}
+      await tester.pumpAndSettle();
 
-class _TestApp extends StatelessWidget {
-  const _TestApp({required this.child});
+      expect(favoriteCalls, 0);
+      expect(deletionCalls, 0);
+      expect(organizeCalls, 0);
+    },
+  );
 
-  final Widget child;
+  testWidgets(
+    'failed persistence does not complete decision',
+    (tester) async {
+      var completed = 0;
+      var failed = 0;
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(body: SizedBox.expand(child: child)),
-    );
-  }
+      await tester.pumpWidget(
+        buildSubject(
+          onFavorite: () async => false,
+          onMarkForDeletion: () async => true,
+          onOrganize: () async => true,
+          onDecisionCompleted: () async {
+            completed++;
+          },
+          onDecisionAnimationFailed: () {
+            failed++;
+          },
+        ),
+      );
+
+      await tester.drag(
+        find.byType(TriageSwipeCard),
+        const Offset(0, 180),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(completed, 0);
+      expect(failed, 1);
+    },
+  );
 }

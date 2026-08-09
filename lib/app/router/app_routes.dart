@@ -7,4 +7,6 @@ abstract final class AppRoutes {
   static const String triage = '/triage';
   static const String favorites = '/favorites';
   static const String markedForDeletion = '/marked-for-deletion';
+  static const String photoFolders = '/photo-folders';
+  static const String photoFolderDetails = '/photo-folder-details';
 }

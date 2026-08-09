@@ -1,3 +1,4 @@
+import 'package:delivo/core/database/app_database_provider.dart';
 import 'package:delivo/core/logging/app_logger_provider.dart';
 import 'package:delivo/features/triage/data/repositories/sqflite_photo_decision_repository.dart';
 import 'package:delivo/features/triage/domain/repositories/photo_decision_repository.dart';
@@ -7,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final photoDecisionRepositoryProvider =
     Provider<PhotoDecisionRepository>((ref) {
   final repository = SqflitePhotoDecisionRepository(
+    database: ref.watch(appDatabaseProvider),
     logger: ref.watch(appLoggerProvider),
   );
 

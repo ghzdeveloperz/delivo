@@ -1,9 +1,10 @@
 import 'dart:typed_data';
 
 import 'package:delivo/core/errors/app_failure.dart';
-import 'package:delivo/core/result/result.dart';
 import 'package:delivo/features/gallery_access/domain/entities/photo_asset.dart';
 import 'package:delivo/features/gallery_access/presentation/providers/gallery_providers.dart';
+import 'package:delivo/features/photo_folders/domain/entities/photo_folder.dart';
+import 'package:delivo/features/photo_folders/presentation/providers/photo_folder_providers.dart';
 import 'package:delivo/features/triage/domain/entities/photo_decision.dart';
 import 'package:delivo/features/triage/domain/entities/photo_decision_record.dart';
 import 'package:delivo/features/triage/presentation/providers/triage_providers.dart';
@@ -11,7 +12,9 @@ import 'package:delivo/features/triage/presentation/triage_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final triageControllerProvider =
-    NotifierProvider<TriageController, TriageState>(TriageController.new);
+    NotifierProvider<TriageController, TriageState>(
+  TriageController.new,
+);
 
 final class TriageController extends Notifier<TriageState> {
   static const int _pageSize = 40;
@@ -19,7 +22,8 @@ final class TriageController extends Notifier<TriageState> {
   static const int _compactAfterIndex = 30;
   static const int _keepPreviousCount = 2;
 
-  final List<PhotoDecisionRecord> _sessionHistory = <PhotoDecisionRecord>[];
+  final List<PhotoDecisionRecord> _sessionHistory =
+      <PhotoDecisionRecord>[];
 
   int _nextPage = 0;
   bool _hasMore = true;
@@ -77,21 +81,89 @@ final class TriageController extends Notifier<TriageState> {
     return _persistDecision(PhotoDecision.markedForDeletion);
   }
 
-  Future<bool> _persistDecision(PhotoDecision decision) async {
+  Future<bool> persistOrganizeCurrent(
+    PhotoFolder folder,
+  ) async {
     final currentState = state;
 
-    if (currentState is! TriageReady || currentState.isPersisting) {
+    if (currentState is! TriageReady ||
+        currentState.isPersisting) {
       return false;
     }
 
     state = currentState.copyWith(isPersisting: true);
 
     final currentPhoto = currentState.currentPhoto;
-    final repository = ref.read(photoDecisionRepositoryProvider);
+    final decisionRepository =
+        ref.read(photoDecisionRepositoryProvider);
 
-    final previousResult = await repository.getDecision(currentPhoto.id);
+    final previousResult =
+        await decisionRepository.getDecision(currentPhoto.id);
 
-    final previousRecord = previousResult.fold<PhotoDecisionRecord?>(
+    final previousRecord =
+        previousResult.fold<PhotoDecisionRecord?>(
+      onSuccess: (value) => value,
+      onFailure: (_) => null,
+    );
+
+    final folderResult = await ref
+        .read(photoFolderRepositoryProvider)
+        .movePhoto(
+          assetId: currentPhoto.id,
+          folderId: folder.id,
+          assetCreatedAt: currentPhoto.createdAt,
+        );
+
+    final saved = folderResult.fold<bool>(
+      onSuccess: (_) => true,
+      onFailure: (_) => false,
+    );
+
+    if (!saved) {
+      state = currentState.copyWith(
+        isPersisting: false,
+      );
+      return false;
+    }
+
+    _sessionHistory.add(
+      PhotoDecisionRecord(
+        assetId: currentPhoto.id,
+        assetCreatedAt: currentPhoto.createdAt,
+        previousDecision:
+            previousRecord?.newDecision ??
+            PhotoDecision.unreviewed,
+        previousFolderId: previousRecord?.newFolderId,
+        newDecision: PhotoDecision.organized,
+        newFolderId: folder.id,
+        decidedAt: DateTime.now(),
+      ),
+    );
+
+    return true;
+  }
+
+  Future<bool> _persistDecision(
+    PhotoDecision decision,
+  ) async {
+    final currentState = state;
+
+    if (currentState is! TriageReady ||
+        currentState.isPersisting) {
+      return false;
+    }
+
+    state = currentState.copyWith(isPersisting: true);
+
+    final currentPhoto = currentState.currentPhoto;
+    final repository =
+        ref.read(photoDecisionRepositoryProvider);
+
+    final previousResult =
+        await repository.getDecision(currentPhoto.id);
+
+    final previousRecord =
+        previousResult.fold<PhotoDecisionRecord?>(
       onSuccess: (value) => value,
       onFailure: (_) => null,
     );
@@ -99,7 +171,9 @@ final class TriageController extends Notifier<TriageState> {
     final record = PhotoDecisionRecord(
       assetId: currentPhoto.id,
       assetCreatedAt: currentPhoto.createdAt,
-      previousDecision: previousRecord?.newDecision ?? PhotoDecision.unreviewed,
+      previousDecision:
+          previousRecord?.newDecision ??
+          PhotoDecision.unreviewed,
       previousFolderId: previousRecord?.newFolderId,
       newDecision: decision,
       decidedAt: DateTime.now(),
@@ -113,7 +187,9 @@ final class TriageController extends Notifier<TriageState> {
     );
 
     if (!saved) {
-      state = currentState.copyWith(isPersisting: false);
+      state = currentState.copyWith(
+        isPersisting: false,
+      );
       return false;
     }
 
@@ -124,7 +200,8 @@ final class TriageController extends Notifier<TriageState> {
   Future<void> completePersistedDecision() async {
     final currentState = state;
 
-    if (currentState is! TriageReady || !currentState.isPersisting) {
+    if (currentState is! TriageReady ||
+        !currentState.isPersisting) {
       return;
     }
 
@@ -141,14 +218,20 @@ final class TriageController extends Notifier<TriageState> {
         onFailure: (_) => <String>{},
       );
 
-      final nextBatch = await _loadNextUnreviewedBatch(reviewedIds);
+      final nextBatch =
+          await _loadNextUnreviewedBatch(reviewedIds);
 
       if (nextBatch == null) {
-        state = currentState.copyWith(isPersisting: false);
+        state = currentState.copyWith(
+          isPersisting: false,
+        );
         return;
       }
 
-      photos = <PhotoAsset>[...photos, ...nextBatch];
+      photos = <PhotoAsset>[
+        ...photos,
+        ...nextBatch,
+      ];
     }
 
     if (nextIndex >= photos.length) {
@@ -169,7 +252,8 @@ final class TriageController extends Notifier<TriageState> {
 
     _preloadAhead(ready);
 
-    if (_remainingAhead(ready) <= _preloadAheadCount && _hasMore) {
+    if (_remainingAhead(ready) <= _preloadAheadCount &&
+        _hasMore) {
       await _appendNextBatch();
     }
   }
@@ -177,8 +261,11 @@ final class TriageController extends Notifier<TriageState> {
   void cancelPersistingState() {
     final currentState = state;
 
-    if (currentState is TriageReady && currentState.isPersisting) {
-      state = currentState.copyWith(isPersisting: false);
+    if (currentState is TriageReady &&
+        currentState.isPersisting) {
+      state = currentState.copyWith(
+        isPersisting: false,
+      );
     }
   }
 
@@ -189,34 +276,14 @@ final class TriageController extends Notifier<TriageState> {
 
     final currentState = state;
 
-    if (currentState is TriageReady && currentState.isPersisting) {
+    if (currentState is TriageReady &&
+        currentState.isPersisting) {
       return;
     }
 
-    final repository = ref.read(photoDecisionRepositoryProvider);
     final lastAction = _sessionHistory.removeLast();
 
-    final shouldRemove =
-        lastAction.previousDecision == PhotoDecision.unreviewed;
-
-    final result = shouldRemove
-        ? await repository.removeDecision(lastAction.assetId)
-        : await repository.saveDecision(
-            PhotoDecisionRecord(
-              assetId: lastAction.assetId,
-              assetCreatedAt: lastAction.assetCreatedAt,
-              previousDecision: lastAction.newDecision,
-              previousFolderId: lastAction.newFolderId,
-              newDecision: lastAction.previousDecision,
-              newFolderId: lastAction.previousFolderId,
-              decidedAt: DateTime.now(),
-            ),
-          );
-
-    final restored = result.fold<bool>(
-      onSuccess: (_) => true,
-      onFailure: (_) => false,
-    );
+    final restored = await _restoreDecision(lastAction);
 
     if (!restored) {
       _sessionHistory.add(lastAction);
@@ -224,7 +291,8 @@ final class TriageController extends Notifier<TriageState> {
     }
 
     if (currentState is TriageReady) {
-      final existingIndex = currentState.photos.indexWhere(
+      final existingIndex =
+          currentState.photos.indexWhere(
         (photo) => photo.id == lastAction.assetId,
       );
 
@@ -241,9 +309,10 @@ final class TriageController extends Notifier<TriageState> {
       }
     }
 
-    final assetResult = await ref
-        .read(galleryRepositoryProvider)
-        .getPhotoById(lastAction.assetId);
+    final assetResult =
+        await ref.read(galleryRepositoryProvider).getPhotoById(
+              lastAction.assetId,
+            );
 
     final photo = assetResult.fold<PhotoAsset?>(
       onSuccess: (value) => value,
@@ -266,6 +335,64 @@ final class TriageController extends Notifier<TriageState> {
     _preloadAhead(ready);
   }
 
+  Future<bool> _restoreDecision(
+    PhotoDecisionRecord record,
+  ) async {
+    final decisionRepository =
+        ref.read(photoDecisionRepositoryProvider);
+    final folderRepository =
+        ref.read(photoFolderRepositoryProvider);
+
+    if (record.previousDecision ==
+        PhotoDecision.unreviewed) {
+      final result = record.newDecision ==
+              PhotoDecision.organized
+          ? await folderRepository.removePhoto(
+              record.assetId,
+            )
+          : await decisionRepository.removeDecision(
+              record.assetId,
+            );
+
+      return result.fold<bool>(
+        onSuccess: (_) => true,
+        onFailure: (_) => false,
+      );
+    }
+
+    if (record.previousDecision ==
+            PhotoDecision.organized &&
+        record.previousFolderId != null) {
+      final result = await folderRepository.movePhoto(
+        assetId: record.assetId,
+        folderId: record.previousFolderId!,
+        assetCreatedAt: record.assetCreatedAt,
+      );
+
+      return result.fold<bool>(
+        onSuccess: (_) => true,
+        onFailure: (_) => false,
+      );
+    }
+
+    final result = await decisionRepository.saveDecision(
+      PhotoDecisionRecord(
+        assetId: record.assetId,
+        assetCreatedAt: record.assetCreatedAt,
+        previousDecision: record.newDecision,
+        previousFolderId: record.newFolderId,
+        newDecision: record.previousDecision,
+        newFolderId: record.previousFolderId,
+        decidedAt: DateTime.now(),
+      ),
+    );
+
+    return result.fold<bool>(
+      onSuccess: (_) => true,
+      onFailure: (_) => false,
+    );
+  }
+
   Future<List<PhotoAsset>?> _loadNextUnreviewedBatch(
     Set<String> reviewedIds,
   ) async {
@@ -283,7 +410,9 @@ final class TriageController extends Notifier<TriageState> {
       );
 
       if (page == null) {
-        state = const TriageFailure('Não foi possível carregar suas fotos.');
+        state = const TriageFailure(
+          'Não foi possível carregar suas fotos.',
+        );
         return null;
       }
 
@@ -291,7 +420,9 @@ final class TriageController extends Notifier<TriageState> {
       _hasMore = page.hasMore;
 
       final photos = page.photos
-          .where((photo) => !reviewedIds.contains(photo.id))
+          .where(
+            (photo) => !reviewedIds.contains(photo.id),
+          )
           .toList(growable: false);
 
       if (photos.isNotEmpty || !_hasMore) {
@@ -319,12 +450,14 @@ final class TriageController extends Notifier<TriageState> {
         .read(photoDecisionRepositoryProvider)
         .getReviewedAssetIds();
 
-    final reviewedIds = reviewedResult.fold<Set<String>>(
+    final reviewedIds =
+        reviewedResult.fold<Set<String>>(
       onSuccess: (value) => value,
       onFailure: (_) => <String>{},
     );
 
-    final next = await _loadNextUnreviewedBatch(reviewedIds);
+    final next =
+        await _loadNextUnreviewedBatch(reviewedIds);
 
     _loadingMore = false;
 
@@ -332,7 +465,9 @@ final class TriageController extends Notifier<TriageState> {
       final latest = state;
 
       if (latest is TriageReady) {
-        state = latest.copyWith(hasMore: _hasMore);
+        state = latest.copyWith(
+          hasMore: _hasMore,
+        );
       }
       return;
     }
@@ -343,14 +478,20 @@ final class TriageController extends Notifier<TriageState> {
       return;
     }
 
-    final existingIds = latest.photos.map((photo) => photo.id).toSet();
+    final existingIds =
+        latest.photos.map((photo) => photo.id).toSet();
 
     final unique = next
-        .where((photo) => !existingIds.contains(photo.id))
+        .where(
+          (photo) => !existingIds.contains(photo.id),
+        )
         .toList(growable: false);
 
     final ready = latest.copyWith(
-      photos: <PhotoAsset>[...latest.photos, ...unique],
+      photos: <PhotoAsset>[
+        ...latest.photos,
+        ...unique,
+      ],
       hasMore: _hasMore,
     );
 
@@ -363,11 +504,15 @@ final class TriageController extends Notifier<TriageState> {
       return ready;
     }
 
-    final start = ready.currentIndex - _keepPreviousCount;
+    final start =
+        ready.currentIndex - _keepPreviousCount;
 
     final compacted = ready.photos.sublist(start);
 
-    return ready.copyWith(photos: compacted, currentIndex: _keepPreviousCount);
+    return ready.copyWith(
+      photos: compacted,
+      currentIndex: _keepPreviousCount,
+    );
   }
 
   int _remainingAhead(TriageReady ready) {
@@ -375,15 +520,19 @@ final class TriageController extends Notifier<TriageState> {
   }
 
   void _preloadAhead(TriageReady ready) {
-    final repository = ref.read(galleryRepositoryProvider);
-    final cache = ref.read(triageThumbnailCacheProvider);
-
-    final end = (ready.currentIndex + _preloadAheadCount + 1).clamp(
-      0,
-      ready.photos.length,
+    final repository =
+        ref.read(galleryRepositoryProvider);
+    final cache = ref.read(
+      triageThumbnailCacheProvider,
     );
 
-    for (var index = ready.currentIndex; index < end; index++) {
+    final end =
+        (ready.currentIndex + _preloadAheadCount + 1)
+            .clamp(0, ready.photos.length);
+
+    for (var index = ready.currentIndex;
+        index < end;
+        index++) {
       final assetId = ready.photos[index].id;
 
       cache.get(

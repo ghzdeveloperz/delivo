@@ -1,5 +1,6 @@
 import 'package:delivo/app/theme/app_colors.dart';
 import 'package:delivo/app/theme/app_spacing.dart';
+import 'package:delivo/features/photo_folders/presentation/widgets/photo_folder_picker_sheet.dart';
 import 'package:delivo/features/triage/presentation/providers/triage_controller.dart';
 import 'package:delivo/features/triage/presentation/triage_state.dart';
 import 'package:delivo/features/triage/presentation/widgets/triage_photo_view.dart';
@@ -12,10 +13,12 @@ class TriagePage extends ConsumerStatefulWidget {
   const TriagePage({super.key});
 
   @override
-  ConsumerState<TriagePage> createState() => _TriagePageState();
+  ConsumerState<TriagePage> createState() =>
+      _TriagePageState();
 }
 
-class _TriagePageState extends ConsumerState<TriagePage> {
+class _TriagePageState
+    extends ConsumerState<TriagePage> {
   final GlobalKey<TriageSwipeCardState> _cardKey =
       GlobalKey<TriageSwipeCardState>();
 
@@ -24,26 +27,40 @@ class _TriagePageState extends ConsumerState<TriagePage> {
     super.initState();
 
     Future<void>.microtask(
-      () => ref.read(triageControllerProvider.notifier).load(),
+      () => ref
+          .read(triageControllerProvider.notifier)
+          .load(),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(triageControllerProvider);
+    final state =
+        ref.watch(triageControllerProvider);
 
     return Scaffold(
       body: SafeArea(
         child: switch (state) {
-          TriageLoading() => const Center(child: CircularProgressIndicator()),
-          TriageReady() => _ReadyTriage(state: state, cardKey: _cardKey),
-          TriageEmpty() => const _TriageEmptyView(),
-          TriageFailure(:final message) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Text(message, textAlign: TextAlign.center),
+          TriageLoading() => const Center(
+              child: CircularProgressIndicator(),
             ),
-          ),
+          TriageReady() => _ReadyTriage(
+              state: state,
+              cardKey: _cardKey,
+            ),
+          TriageEmpty() =>
+            const _TriageEmptyView(),
+          TriageFailure(:final message) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(
+                  AppSpacing.lg,
+                ),
+                child: Text(
+                  message,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
           _ => const SizedBox.shrink(),
         },
       ),
@@ -52,17 +69,25 @@ class _TriagePageState extends ConsumerState<TriagePage> {
 }
 
 class _ReadyTriage extends ConsumerWidget {
-  const _ReadyTriage({required this.state, required this.cardKey});
+  const _ReadyTriage({
+    required this.state,
+    required this.cardKey,
+  });
 
   final TriageReady state;
   final GlobalKey<TriageSwipeCardState> cardKey;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(triageControllerProvider.notifier);
+  Widget build(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final controller =
+        ref.read(triageControllerProvider.notifier);
 
     Future<bool> persistFavorite() async {
-      final success = await controller.persistFavoriteCurrent();
+      final success =
+          await controller.persistFavoriteCurrent();
 
       if (success) {
         await HapticFeedback.mediumImpact();
@@ -72,7 +97,28 @@ class _ReadyTriage extends ConsumerWidget {
     }
 
     Future<bool> persistDeletion() async {
-      final success = await controller.persistDeletionCurrent();
+      final success =
+          await controller.persistDeletionCurrent();
+
+      if (success) {
+        await HapticFeedback.mediumImpact();
+      }
+
+      return success;
+    }
+
+    Future<bool> persistOrganization() async {
+      final folder =
+          await PhotoFolderPickerSheet.show(context);
+
+      if (folder == null) {
+        return false;
+      }
+
+      final success =
+          await controller.persistOrganizeCurrent(
+        folder,
+      );
 
       if (success) {
         await HapticFeedback.mediumImpact();
@@ -101,12 +147,20 @@ class _ReadyTriage extends ConsumerWidget {
                 key: cardKey,
                 enabled: !state.isPersisting,
                 onFavorite: persistFavorite,
-                onMarkForDeletion: persistDeletion,
-                onDecisionCompleted: controller.completePersistedDecision,
-                onDecisionAnimationFailed: controller.cancelPersistingState,
-                onOrganize: () => _showOrganizeSheet(context),
+                onMarkForDeletion:
+                    persistDeletion,
+                onOrganize:
+                    persistOrganization,
+                onDecisionCompleted:
+                    controller
+                        .completePersistedDecision,
+                onDecisionAnimationFailed:
+                    controller
+                        .cancelPersistingState,
                 child: TriagePhotoView(
-                  key: ValueKey(state.currentPhoto.id),
+                  key: ValueKey(
+                    state.currentPhoto.id,
+                  ),
                   assetId: state.currentPhoto.id,
                 ),
               ),
@@ -114,72 +168,31 @@ class _ReadyTriage extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           _ActionBar(
-            canUndo: state.canUndo && !state.isPersisting,
+            canUndo:
+                state.canUndo && !state.isPersisting,
             enabled: !state.isPersisting,
-            onDelete: () => cardKey.currentState?.triggerDeletion(),
+            onDelete: () => cardKey.currentState
+                ?.triggerDeletion(),
             onUndo: () async {
               await controller.undo();
               await HapticFeedback.selectionClick();
             },
-            onOrganize: () => cardKey.currentState?.triggerOrganize(),
-            onFavorite: () => cardKey.currentState?.triggerFavorite(),
+            onOrganize: () => cardKey.currentState
+                ?.triggerOrganize(),
+            onFavorite: () => cardKey.currentState
+                ?.triggerFavorite(),
           ),
         ],
       ),
     );
   }
-
-  static Future<void> _showOrganizeSheet(BuildContext context) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (context) {
-        final theme = Theme.of(context);
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.xs,
-            AppSpacing.lg,
-            AppSpacing.xl,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.folder_rounded,
-                size: 36,
-                color: theme.colorScheme.secondary,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text('Organizar foto', style: theme.textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'A seleção e criação de pastas será conectada na Milestone 4. Nenhum arquivo será movido fisicamente.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Entendi'),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }
 
 class _TriageHeader extends StatelessWidget {
-  const _TriageHeader({required this.loadedPosition, required this.date});
+  const _TriageHeader({
+    required this.loadedPosition,
+    required this.date,
+  });
 
   final int loadedPosition;
   final DateTime date;
@@ -196,17 +209,24 @@ class _TriageHeader extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              onPressed: () => Navigator.of(context).maybePop(),
+              onPressed: () =>
+                  Navigator.of(context).maybePop(),
               tooltip: 'Voltar',
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+              ),
             ),
           ),
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment:
+                MainAxisAlignment.center,
             children: [
               Text(
                 _formatDate(date),
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: -0.2,
                 ),
@@ -214,8 +234,12 @@ class _TriageHeader extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 'Foto $loadedPosition',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: theme
+                    .textTheme
+                    .labelMedium
+                    ?.copyWith(
+                  color: theme.colorScheme
+                      .onSurfaceVariant,
                 ),
               ),
             ],
@@ -224,8 +248,11 @@ class _TriageHeader extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: IconButton(
               tooltip: 'Como funciona',
-              onPressed: () => _showGestureHelp(context),
-              icon: const Icon(Icons.info_outline_rounded),
+              onPressed: () =>
+                  _showGestureHelp(context),
+              icon: const Icon(
+                Icons.info_outline_rounded,
+              ),
             ),
           ),
         ],
@@ -252,7 +279,9 @@ class _TriageHeader extends StatelessWidget {
     return '${date.day} de ${months[date.month - 1]} de ${date.year}';
   }
 
-  static Future<void> _showGestureHelp(BuildContext context) {
+  static Future<void> _showGestureHelp(
+    BuildContext context,
+  ) {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -268,24 +297,29 @@ class _TriageHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               _GestureHelpItem(
-                icon: Icons.keyboard_arrow_up_rounded,
+                icon: Icons
+                    .keyboard_arrow_up_rounded,
                 color: AppColors.destructive,
                 title: 'Para cima',
-                description: 'Marcar para revisão de exclusão',
+                description:
+                    'Marcar para revisão de exclusão',
               ),
               SizedBox(height: AppSpacing.md),
               _GestureHelpItem(
-                icon: Icons.keyboard_arrow_down_rounded,
+                icon: Icons
+                    .keyboard_arrow_down_rounded,
                 color: AppColors.favorite,
                 title: 'Para baixo',
-                description: 'Favoritar e manter',
+                description:
+                    'Favoritar e manter',
               ),
               SizedBox(height: AppSpacing.md),
               _GestureHelpItem(
                 icon: Icons.swap_horiz_rounded,
                 color: AppColors.secondary,
                 title: 'Para o lado',
-                description: 'Organizar em uma pasta',
+                description:
+                    'Organizar em uma pasta',
               ),
             ],
           ),
@@ -317,35 +351,41 @@ class _ActionBar extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment:
+          MainAxisAlignment.spaceEvenly,
       children: [
         _ActionButton(
           label: 'Revisar',
           tooltip: 'Marcar para exclusão',
           icon: Icons.close_rounded,
           color: AppColors.destructive,
-          onPressed: enabled ? onDelete : null,
+          onPressed:
+              enabled ? onDelete : null,
         ),
         _ActionButton(
           label: 'Desfazer',
           tooltip: 'Desfazer última decisão',
           icon: Icons.undo_rounded,
-          color: theme.colorScheme.onSurfaceVariant,
-          onPressed: canUndo ? onUndo : null,
+          color:
+              theme.colorScheme.onSurfaceVariant,
+          onPressed:
+              canUndo ? onUndo : null,
         ),
         _ActionButton(
           label: 'Organizar',
           tooltip: 'Organizar em pasta',
           icon: Icons.folder_rounded,
           color: AppColors.secondary,
-          onPressed: enabled ? onOrganize : null,
+          onPressed:
+              enabled ? onOrganize : null,
         ),
         _ActionButton(
           label: 'Favoritar',
           tooltip: 'Favoritar e manter',
           icon: Icons.favorite_rounded,
           color: AppColors.favorite,
-          onPressed: enabled ? onFavorite : null,
+          onPressed:
+              enabled ? onFavorite : null,
         ),
       ],
     );
@@ -383,23 +423,34 @@ class _ActionButton extends StatelessWidget {
             onPressed: onPressed,
             iconSize: 27,
             style: IconButton.styleFrom(
-              minimumSize: const Size.square(58),
+              minimumSize:
+                  const Size.square(58),
               foregroundColor: color,
-              backgroundColor: color.withValues(alpha: 0.11),
-              disabledForegroundColor: Theme.of(context).disabledColor,
-              disabledBackgroundColor: Theme.of(
-                context,
-              ).disabledColor.withValues(alpha: 0.07),
+              backgroundColor:
+                  color.withValues(alpha: 0.11),
+              disabledForegroundColor:
+                  Theme.of(context)
+                      .disabledColor,
+              disabledBackgroundColor:
+                  Theme.of(context)
+                      .disabledColor
+                      .withValues(alpha: 0.07),
             ),
             icon: Icon(icon),
           ),
           const SizedBox(height: 5),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            style: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(
               color: disabled
-                  ? Theme.of(context).disabledColor
-                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                  ? Theme.of(context)
+                      .disabledColor
+                  : Theme.of(context)
+                      .colorScheme
+                      .onSurfaceVariant,
             ),
           ),
         ],
@@ -432,22 +483,36 @@ class _GestureHelpItem extends StatelessWidget {
           height: 48,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
+            color: color.withValues(
+              alpha: 0.12,
+            ),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color),
+          child: Icon(
+            icon,
+            color: color,
+          ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
-              Text(title, style: theme.textTheme.titleSmall),
+              Text(
+                title,
+                style:
+                    theme.textTheme.titleSmall,
+              ),
               const SizedBox(height: 2),
               Text(
                 description,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: theme
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(
+                  color: theme.colorScheme
+                      .onSurfaceVariant,
                 ),
               ),
             ],
@@ -467,7 +532,9 @@ class _TriageEmptyView extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
+        padding: const EdgeInsets.all(
+          AppSpacing.xl,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -476,27 +543,26 @@ class _TriageEmptyView extends StatelessWidget {
               height: 80,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: 0.10),
+                color: theme
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.10),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.check_rounded,
                 size: 42,
-                color: theme.colorScheme.primary,
+                color:
+                    theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(
+              height: AppSpacing.lg,
+            ),
             Text(
               'Tudo revisado por enquanto.',
-              style: theme.textTheme.headlineSmall,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'As próximas fotos aparecerão aqui quando estiverem disponíveis.',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style:
+                  theme.textTheme.headlineSmall,
               textAlign: TextAlign.center,
             ),
           ],

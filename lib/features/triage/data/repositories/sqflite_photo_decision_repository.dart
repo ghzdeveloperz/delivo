@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:delivo/core/database/app_database.dart';
 import 'package:delivo/core/errors/app_failure.dart';
 import 'package:delivo/core/logging/app_logger.dart';
 import 'package:delivo/core/result/result.dart';
@@ -8,62 +9,31 @@ import 'package:delivo/features/triage/domain/entities/photo_decision_record.dar
 import 'package:delivo/features/triage/domain/repositories/photo_decision_repository.dart';
 import 'package:sqflite/sqflite.dart';
 
-final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
-  SqflitePhotoDecisionRepository({required AppLogger logger})
-    : _logger = logger;
+final class SqflitePhotoDecisionRepository
+    implements PhotoDecisionRepository {
+  SqflitePhotoDecisionRepository({
+    required AppDatabase database,
+    required AppLogger logger,
+  })  : _database = database,
+        _logger = logger;
 
-  static const String _databaseName = 'delivo.db';
-  static const int _databaseVersion = 1;
   static const String _table = 'photo_decisions';
 
+  final AppDatabase _database;
   final AppLogger _logger;
+
   final StreamController<void> _changesController =
       StreamController<void>.broadcast();
-
-  Database? _database;
 
   @override
   Stream<void> get changes => _changesController.stream;
 
-  Future<Database> _getDatabase() async {
-    final existing = _database;
-
-    if (existing != null) {
-      return existing;
-    }
-
-    final databasePath = await getDatabasesPath();
-    final path = '$databasePath/$_databaseName';
-
-    final database = await openDatabase(
-      path,
-      version: _databaseVersion,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE $_table (
-            asset_id TEXT PRIMARY KEY NOT NULL,
-            decision INTEGER NOT NULL,
-            folder_id TEXT,
-            decided_at INTEGER NOT NULL,
-            asset_created_at INTEGER
-          )
-          ''');
-
-        await db.execute(
-          'CREATE INDEX idx_photo_decisions_decision '
-          'ON $_table(decision)',
-        );
-      },
-    );
-
-    _database = database;
-    return database;
-  }
-
   @override
-  Future<Result<PhotoDecisionRecord?>> getDecision(String assetId) async {
+  Future<Result<PhotoDecisionRecord?>> getDecision(
+    String assetId,
+  ) async {
     try {
-      final db = await _getDatabase();
+      final db = await _database.database;
       final rows = await db.query(
         _table,
         where: 'asset_id = ?',
@@ -77,15 +47,21 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
 
       return Success(_fromMap(rows.first));
     } catch (error, stackTrace) {
-      _logFailure('Failed to load photo decision.', error, stackTrace);
+      _logFailure(
+        'Failed to load photo decision.',
+        error,
+        stackTrace,
+      );
       return const Failure(StorageFailure());
     }
   }
 
   @override
-  Future<Result<void>> saveDecision(PhotoDecisionRecord decision) async {
+  Future<Result<void>> saveDecision(
+    PhotoDecisionRecord decision,
+  ) async {
     try {
-      final db = await _getDatabase();
+      final db = await _database.database;
 
       await db.transaction((txn) async {
         await txn.insert(
@@ -98,7 +74,11 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
       _notifyChanged();
       return const Success(null);
     } catch (error, stackTrace) {
-      _logFailure('Failed to persist photo decision.', error, stackTrace);
+      _logFailure(
+        'Failed to persist photo decision.',
+        error,
+        stackTrace,
+      );
       return const Failure(StorageFailure());
     }
   }
@@ -106,7 +86,7 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
   @override
   Future<Result<void>> removeDecision(String assetId) async {
     try {
-      final db = await _getDatabase();
+      final db = await _database.database;
 
       await db.transaction((txn) async {
         await txn.delete(
@@ -119,7 +99,11 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
       _notifyChanged();
       return const Success(null);
     } catch (error, stackTrace) {
-      _logFailure('Failed to remove photo decision.', error, stackTrace);
+      _logFailure(
+        'Failed to remove photo decision.',
+        error,
+        stackTrace,
+      );
       return const Failure(StorageFailure());
     }
   }
@@ -127,12 +111,21 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
   @override
   Future<Result<Set<String>>> getReviewedAssetIds() async {
     try {
-      final db = await _getDatabase();
-      final rows = await db.query(_table, columns: const <String>['asset_id']);
+      final db = await _database.database;
+      final rows = await db.query(
+        _table,
+        columns: const <String>['asset_id'],
+      );
 
-      return Success(rows.map((row) => row['asset_id']! as String).toSet());
+      return Success(
+        rows.map((row) => row['asset_id']! as String).toSet(),
+      );
     } catch (error, stackTrace) {
-      _logFailure('Failed to load reviewed asset ids.', error, stackTrace);
+      _logFailure(
+        'Failed to load reviewed asset ids.',
+        error,
+        stackTrace,
+      );
       return const Failure(StorageFailure());
     }
   }
@@ -142,7 +135,7 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
     PhotoDecision decision,
   ) async {
     try {
-      final db = await _getDatabase();
+      final db = await _database.database;
       final rows = await db.query(
         _table,
         where: 'decision = ?',
@@ -150,25 +143,39 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
         orderBy: 'COALESCE(asset_created_at, decided_at) DESC',
       );
 
-      return Success(rows.map(_fromMap).toList(growable: false));
+      return Success(
+        rows.map(_fromMap).toList(growable: false),
+      );
     } catch (error, stackTrace) {
-      _logFailure('Failed to load decisions by state.', error, stackTrace);
+      _logFailure(
+        'Failed to load decisions by state.',
+        error,
+        stackTrace,
+      );
       return const Failure(StorageFailure());
     }
   }
 
   @override
-  Future<Result<int>> countByDecision(PhotoDecision decision) async {
+  Future<Result<int>> countByDecision(
+    PhotoDecision decision,
+  ) async {
     try {
-      final db = await _getDatabase();
+      final db = await _database.database;
       final result = await db.rawQuery(
         'SELECT COUNT(*) AS count FROM $_table WHERE decision = ?',
         <Object?>[decision.index],
       );
 
-      return Success(Sqflite.firstIntValue(result) ?? 0);
+      return Success(
+        Sqflite.firstIntValue(result) ?? 0,
+      );
     } catch (error, stackTrace) {
-      _logFailure('Failed to count photo decisions.', error, stackTrace);
+      _logFailure(
+        'Failed to count photo decisions.',
+        error,
+        stackTrace,
+      );
       return const Failure(StorageFailure());
     }
   }
@@ -179,7 +186,8 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
       'decision': record.newDecision.index,
       'folder_id': record.newFolderId,
       'decided_at': record.decidedAt.millisecondsSinceEpoch,
-      'asset_created_at': record.assetCreatedAt?.millisecondsSinceEpoch,
+      'asset_created_at':
+          record.assetCreatedAt?.millisecondsSinceEpoch,
     };
   }
 
@@ -206,18 +214,19 @@ final class SqflitePhotoDecisionRepository implements PhotoDecisionRepository {
     }
   }
 
-  void _logFailure(String message, Object error, StackTrace stackTrace) {
-    _logger.error(message, error: error, stackTrace: stackTrace);
+  void _logFailure(
+    String message,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    _logger.error(
+      message,
+      error: error,
+      stackTrace: stackTrace,
+    );
   }
 
   Future<void> close() async {
-    final database = _database;
-    _database = null;
-
-    if (database != null) {
-      await database.close();
-    }
-
     await _changesController.close();
   }
 }
