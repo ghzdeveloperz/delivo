@@ -120,3 +120,111 @@ Todas as mudanças relevantes do Delivo serão registradas neste arquivo.
 - Corrigidos testes da `TriageSwipeCard` após alteração dos callbacks.
 - Corrigida atualização reativa das telas de pastas.
 - Suavizada a transição dos resultados durante buscas.
+### Milestone 005 — Favorites
+
+#### Added
+
+- Gerenciamento completo das fotos favoritas.
+- Busca por dia, mês e ano.
+- Ordenação pela data original da fotografia.
+- Ordenação pela data em que a foto foi favoritada.
+- Visualização individual das favoritas.
+- Zoom em tela cheia.
+- Seleção múltipla.
+- Seleção através de long press.
+- Opção de selecionar todas.
+- Remoção individual e em lote dos favoritos.
+- Organização de favoritas em pastas.
+- Envio de favoritas para revisão de exclusão.
+- Confirmação antes de remover o estado protegido de favorita.
+- Ações em lote através de transações SQLite.
+- Animações suaves durante alterações da coleção.
+
+#### Changed
+
+- Favoritas deixou de funcionar somente como uma grid de consulta.
+- Coleção passou a oferecer gerenciamento individual e em lote.
+- Operações entre Favoritas, Pastas e Revisão passaram a respeitar o mesmo modelo exclusivo de decisão.
+- Visualização de fotos passou a utilizar viewer reutilizável.
+
+#### Fixed
+
+- Corrigida sincronização após remoções em lote.
+- Corrigida atualização após organizar favoritas em pastas.
+- Corrigida atualização após enviar favoritas para revisão.
+- Garantido que uma fotografia não permaneça em dois estados simultaneamente.
+- Suavizada a remoção de fotografias da grid.
+
+
+### Milestone 006 — Deletion Review
+
+#### Added
+
+- Fluxo final de revisão das fotografias marcadas para exclusão.
+- Seleção individual e múltipla.
+- Seleção de todas as fotografias.
+- Estimativa de espaço ocupado pelas fotos marcadas.
+- Restauração para Não revisadas.
+- Movimentação de fotos marcadas para Favoritas.
+- Organização de fotos marcadas em pastas.
+- Visualização individual com zoom.
+- Exclusão física através da API nativa da galeria.
+- Confirmação explícita antes da exclusão.
+- Suporte à confirmação adicional do sistema operacional.
+- Tratamento de exclusões parciais.
+- Resultado detalhado da operação de exclusão.
+- Estimativa real de espaço a liberar na Home.
+- Cache em memória do tamanho dos assets.
+- Abstração `GalleryDeletionGateway`.
+- Serviço `DeletionReviewService`.
+
+#### Changed
+
+- Fotos marcadas para exclusão continuam intactas até autorização explícita na revisão.
+- Home passou a calcular o espaço estimado a partir dos assets realmente marcados.
+- Exclusões locais passaram a depender do resultado confirmado pela camada nativa.
+- Operações de revisão passaram a compartilhar infraestrutura de decisões em lote.
+
+#### Fixed
+
+- Corrigido cancelamento da exclusão para preservar os registros locais.
+- Corrigido tratamento de exclusão parcial.
+- Corrigida remoção local para considerar somente IDs realmente excluídos.
+- Corrigida sincronização da Home após exclusões.
+- Corrigida tipagem da coleção de decisões no `homeSummaryProvider`.
+- Corrigida atualização das coleções após restauração, organização ou favoritação.
+- Evitados estados divergentes entre SQLite e galeria física.
+
+
+### Photo Folders — Management Polish
+
+#### Added
+
+- Busca por data dentro das pastas.
+- Ordenação pela data original da foto.
+- Ordenação pela data de entrada na pasta.
+- Visualização de fotos em tela cheia.
+- Zoom.
+- Seleção múltipla.
+- Long press para seleção.
+- Selecionar todas.
+- Favoritar fotos diretamente de uma pasta.
+- Mover várias fotos entre pastas.
+- Enviar várias fotos para revisão.
+- Retornar várias fotos para Não revisadas.
+- Definição de capa da pasta.
+- Indicador visual da foto utilizada como capa.
+
+#### Changed
+
+- Tela interna das pastas passou de grid simples para gerenciamento completo.
+- Ações individuais e múltiplas passaram a utilizar o mesmo modelo de decisão das demais coleções.
+- Popup individual foi mantido como ação secundária.
+
+#### Fixed
+
+- Corrigida referência de capa quando a fotografia utilizada sai da pasta.
+- Corrigida atualização das coleções ao movimentar fotos.
+- Corrigida sincronização entre Pastas, Favoritas e Revisão.
+- Adicionadas transições suaves ao remover ou mover fotografias.
+

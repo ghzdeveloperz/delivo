@@ -9,7 +9,7 @@ Registro técnico da evolução do projeto Delivo.
 | [001 — Foundation](./milestone-001-foundation.md) | Concluído | Fundação, arquitetura, Design System, estado, DI, navegação e testes |
 | [002 — Gallery Access](./milestone-002-gallery-access.md) | Concluído | Permissões, acesso à galeria, paginação, thumbnails e sincronização |
 | [003 — Triage](./milestone-003-triage.md) | Concluído | Triagem, gestos, decisões, persistência, desfazer, favoritos e revisão |
-| [004 — Photo Folders](./milestone-004-photo-folders.md) | Concluído | Pastas lógicas, organização por swipe, movimentação, previews e busca |
-| 005 — Favorites | Pendente | Evolução do gerenciamento e experiência de fotos favoritas |
-| 006 — Deletion Review | Pendente | Revisão final, seleção e exclusão física segura |
-| 007 — Polish | Pendente | Performance, acessibilidade, privacidade e preparação para produção |
+| [004 — Photo Folders](./milestone-004-photo-folders.md) | Concluído | Pastas lógicas, organização, movimentação, gerenciamento, previews e busca |
+| [005 — Favorites](./milestone-005-favorites.md) | Concluído | Gerenciamento, seleção múltipla, busca, ordenação e ações em favoritas |
+| [006 — Deletion Review](./milestone-006-deletion-review.md) | Concluído | Revisão final, seleção e exclusão física segura |
+| 007 — Polish | Pendente | Performance, acessibilidade, segurança, UX e preparação para produção |
