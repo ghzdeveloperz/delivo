@@ -13,9 +13,11 @@ void main() {
             const AsyncValue.data(
               HomeSummary(
                 unreviewedCount: 120,
+                reviewedCount: 100,
                 favoriteCount: 18,
                 markedForDeletionCount: 7,
                 estimatedBytesToFree: 25 * 1024 * 1024,
+                totalPhotoCount: 220,
               ),
             ),
           ),

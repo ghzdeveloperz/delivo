@@ -1,3 +1,4 @@
+
 import 'dart:math' as math;
 
 import 'package:delivo/features/gallery_access/domain/entities/gallery_permission.dart';
@@ -9,7 +10,8 @@ import 'package:delivo/features/triage/domain/entities/photo_decision_record.dar
 import 'package:delivo/features/triage/presentation/providers/triage_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final homeSummaryProvider = FutureProvider<HomeSummary>((ref) async {
+final homeSummaryProvider =
+    FutureProvider<HomeSummary>((ref) async {
   ref.watch(galleryChangesProvider);
 
   final galleryRepository =
@@ -49,14 +51,12 @@ final homeSummaryProvider = FutureProvider<HomeSummary>((ref) async {
     onFailure: (_) => 0,
   );
 
-  final reviewedCount =
-      reviewedResult.fold<int>(
+  final reviewedCount = reviewedResult.fold<int>(
     onSuccess: (value) => value.length,
     onFailure: (_) => 0,
   );
 
-  final favoriteCount =
-      favoriteResult.fold<int>(
+  final favoriteCount = favoriteResult.fold<int>(
     onSuccess: (value) => value,
     onFailure: (_) => 0,
   );
@@ -76,10 +76,14 @@ final homeSummaryProvider = FutureProvider<HomeSummary>((ref) async {
       );
 
   return HomeSummary(
+    totalPhotoCount: photoCount,
+    reviewedCount:
+        math.min(photoCount, reviewedCount),
     unreviewedCount:
         math.max(0, photoCount - reviewedCount),
     favoriteCount: favoriteCount,
-    markedForDeletionCount: deletionRecords.length,
+    markedForDeletionCount:
+        deletionRecords.length,
     estimatedBytesToFree: estimatedBytes,
   );
 });

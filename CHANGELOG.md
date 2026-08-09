@@ -227,4 +227,50 @@ Todas as mudanças relevantes do Delivo serão registradas neste arquivo.
 - Corrigida atualização das coleções ao movimentar fotos.
 - Corrigida sincronização entre Pastas, Favoritas e Revisão.
 - Adicionadas transições suaves ao remover ou mover fotografias.
+# Changelog
+
+## Milestone 007 — Home Redesign, Theme System e Identidade Visual
+
+### Added
+- Background Aurora Smoke animado na Home.
+- Grid pontilhado decorativo.
+- Suporte visual completo para Light e Dark Mode.
+- Switch de alternância de tema no header.
+- Suporte a `ThemeMode.system`.
+- Logo SVG oficial do Delivo no header.
+- Progresso real da galeria.
+- Exibição de percentual de progresso.
+- Exibição de `<1%` para progresso inferior a 1%.
+- Preview de fotos na seção Pastas.
+- Badge com quantidade de pastas.
+- Suporte a `flutter_svg`.
+- Suporte a `flutter_launcher_icons`.
+- Estrutura de assets para identidade visual e ícone do aplicativo.
+
+### Changed
+- Home redesenhada com hierarquia visual mais editorial.
+- Header compactado.
+- CTA de triagem reduzido.
+- Painel de progresso compactado.
+- Cards de estatísticas reduzidos.
+- `Não revisadas` recebeu maior destaque.
+- `Favoritas` e `Para revisar` permanecem lado a lado.
+- `Espaço estimado` passou a ter layout mais compacto.
+- Liquid Glass refinado com menos brilho e blur.
+- Seção Pastas recebeu maior destaque visual.
+- Background Aurora passou a se adaptar ao tema atual.
+- Cores da Home passaram a responder corretamente ao Light e Dark Mode.
+- `HomeSummary` passou a armazenar total de fotos e total revisado.
+
+### Fixed
+- Corrigidos textos e ícones invisíveis no Light Mode.
+- Corrigidas superfícies e bordas com cores hardcoded para Dark Mode.
+- Corrigido contraste do painel de progresso no tema claro.
+- Corrigido contraste dos cards no tema claro.
+- Corrigido contraste da seção Pastas.
+- Corrigida baixa visibilidade da Aurora no Light Mode.
+- Corrigido percentual de progresso exibindo `0%` com fotos já revisadas.
+- Corrigidos testes da Home após evolução do `HomeSummary`.
+- Removido card duplicado de acesso à revisão de exclusão.
+- Corrigido erro de build relacionado ao arquivo `home_page.dart`.
 
