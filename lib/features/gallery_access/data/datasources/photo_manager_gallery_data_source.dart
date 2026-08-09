@@ -8,12 +8,12 @@ final class PhotoManagerGalleryDataSource implements GalleryDataSource {
 
   static const PermissionRequestOption _permissionRequestOption =
       PermissionRequestOption(
-    iosAccessLevel: IosAccessLevel.readWrite,
-    androidPermission: AndroidPermission(
-      type: RequestType.image,
-      mediaLocation: false,
-    ),
-  );
+        iosAccessLevel: IosAccessLevel.readWrite,
+        androidPermission: AndroidPermission(
+          type: RequestType.image,
+          mediaLocation: false,
+        ),
+      );
 
   @override
   Future<PermissionState> getPermissionStatus() {
@@ -36,9 +36,7 @@ final class PhotoManagerGalleryDataSource implements GalleryDataSource {
 
   @override
   Future<int> getPhotoCount() {
-    return PhotoManager.getAssetCount(
-      type: RequestType.image,
-    );
+    return PhotoManager.getAssetCount(type: RequestType.image);
   }
 
   @override
@@ -55,10 +53,7 @@ final class PhotoManagerGalleryDataSource implements GalleryDataSource {
     required int page,
     required int pageSize,
   }) {
-    return path.getAssetListPaged(
-      page: page,
-      size: pageSize,
-    );
+    return path.getAssetListPaged(page: page, size: pageSize);
   }
 
   @override

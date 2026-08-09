@@ -9,8 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final galleryAccessControllerProvider =
     NotifierProvider<GalleryAccessController, GalleryAccessState>(
-  GalleryAccessController.new,
-);
+      GalleryAccessController.new,
+    );
 
 final class GalleryAccessController extends Notifier<GalleryAccessState> {
   static const int _pageSize = 40;
@@ -23,19 +23,16 @@ final class GalleryAccessController extends Notifier<GalleryAccessState> {
   @override
   GalleryAccessState build() {
     ref
-      ..listen<AsyncValue<void>>(
-        galleryChangesProvider,
-        (previous, next) {
-          if (next.hasValue && previous?.hasValue == false) {
-            _scheduleGalleryRefresh();
-            return;
-          }
+      ..listen<AsyncValue<void>>(galleryChangesProvider, (previous, next) {
+        if (next.hasValue && previous?.hasValue == false) {
+          _scheduleGalleryRefresh();
+          return;
+        }
 
-          if (next.hasValue && previous?.hasValue == true) {
-            _scheduleGalleryRefresh();
-          }
-        },
-      )
+        if (next.hasValue && previous?.hasValue == true) {
+          _scheduleGalleryRefresh();
+        }
+      })
       ..onDispose(() {
         _changeTimer?.cancel();
       });
@@ -100,10 +97,7 @@ final class GalleryAccessController extends Notifier<GalleryAccessState> {
       return;
     }
 
-    final result = await repository.getPhotos(
-      page: 0,
-      pageSize: _pageSize,
-    );
+    final result = await repository.getPhotos(page: 0, pageSize: _pageSize);
 
     result.fold(
       onSuccess: (page) {
@@ -140,10 +134,9 @@ final class GalleryAccessController extends Notifier<GalleryAccessState> {
     _isLoadingNextPage = true;
     state = currentState.copyWith(isLoadingMore: true);
 
-    final result = await ref.read(galleryRepositoryProvider).getPhotos(
-          page: _nextPage,
-          pageSize: _pageSize,
-        );
+    final result = await ref
+        .read(galleryRepositoryProvider)
+        .getPhotos(page: _nextPage, pageSize: _pageSize);
 
     result.fold(
       onSuccess: (page) {
@@ -153,18 +146,13 @@ final class GalleryAccessController extends Notifier<GalleryAccessState> {
           return;
         }
 
-        final existingIds = latestState.photos
-            .map((photo) => photo.id)
-            .toSet();
+        final existingIds = latestState.photos.map((photo) => photo.id).toSet();
 
         final newPhotos = page.photos
             .where((photo) => !existingIds.contains(photo.id))
             .toList(growable: false);
 
-        final merged = <PhotoAsset>[
-          ...latestState.photos,
-          ...newPhotos,
-        ];
+        final merged = <PhotoAsset>[...latestState.photos, ...newPhotos];
 
         _nextPage++;
 
@@ -178,9 +166,7 @@ final class GalleryAccessController extends Notifier<GalleryAccessState> {
         final latestState = state;
 
         if (latestState is GalleryAccessReady) {
-          state = latestState.copyWith(
-            isLoadingMore: false,
-          );
+          state = latestState.copyWith(isLoadingMore: false);
         }
       },
     );
@@ -205,12 +191,9 @@ final class GalleryAccessController extends Notifier<GalleryAccessState> {
     }
 
     _changeTimer?.cancel();
-    _changeTimer = Timer(
-      _changeDebounce,
-      () {
-        loadFirstPage();
-      },
-    );
+    _changeTimer = Timer(_changeDebounce, () {
+      loadFirstPage();
+    });
   }
 
   String _messageFor(Object error) {

@@ -20,8 +20,7 @@ class _GalleryPreviewPageState extends ConsumerState<GalleryPreviewPage> {
   void initState() {
     super.initState();
 
-    _scrollController = ScrollController()
-      ..addListener(_handleScroll);
+    _scrollController = ScrollController()..addListener(_handleScroll);
 
     Future<void>.microtask(
       () => ref.read(galleryAccessControllerProvider.notifier).loadFirstPage(),
@@ -56,13 +55,11 @@ class _GalleryPreviewPageState extends ConsumerState<GalleryPreviewPage> {
     final state = ref.watch(galleryAccessControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sua galeria'),
-      ),
+      appBar: AppBar(title: const Text('Sua galeria')),
       body: switch (state) {
         GalleryAccessLoading() => const Center(
-            child: CircularProgressIndicator(),
-          ),
+          child: CircularProgressIndicator(),
+        ),
         GalleryAccessReady(
           :final photos,
           :final permission,
@@ -83,10 +80,10 @@ class _GalleryPreviewPageState extends ConsumerState<GalleryPreviewPage> {
                     padding: const EdgeInsets.all(AppSpacing.xs),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 2,
-                      crossAxisSpacing: 2,
-                    ),
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 2,
+                          crossAxisSpacing: 2,
+                        ),
                     itemCount: photos.length + (isLoadingMore ? 3 : 0),
                     itemBuilder: (context, index) {
                       if (index >= photos.length) {
@@ -106,26 +103,23 @@ class _GalleryPreviewPageState extends ConsumerState<GalleryPreviewPage> {
             ],
           ),
         GalleryAccessEmpty(:final permission) => RefreshIndicator(
-            onRefresh: () => ref
-                .read(galleryAccessControllerProvider.notifier)
-                .refresh(),
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: [
-                SizedBox(
-                  height: MediaQuery.sizeOf(context).height * 0.65,
-                  child: _EmptyGallery(
-                    isLimited: permission == GalleryPermission.limited,
-                  ),
+          onRefresh: () =>
+              ref.read(galleryAccessControllerProvider.notifier).refresh(),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              SizedBox(
+                height: MediaQuery.sizeOf(context).height * 0.65,
+                child: _EmptyGallery(
+                  isLimited: permission == GalleryPermission.limited,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
         GalleryAccessPermissionDenied() => const _PermissionLost(),
         GalleryAccessFailure(:final message) => _FailureView(message: message),
-        _ => const Center(
-            child: CircularProgressIndicator(),
-          ),
+        _ => const Center(child: CircularProgressIndicator()),
       },
     );
   }
@@ -141,9 +135,7 @@ class _LoadingTile extends StatelessWidget {
       child: Center(
         child: SizedBox.square(
           dimension: 20,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-          ),
+          child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
     );
@@ -172,9 +164,7 @@ class _LimitedAccessBanner extends StatelessWidget {
 }
 
 class _EmptyGallery extends StatelessWidget {
-  const _EmptyGallery({
-    required this.isLimited,
-  });
+  const _EmptyGallery({required this.isLimited});
 
   final bool isLimited;
 
@@ -212,9 +202,7 @@ class _PermissionLost extends StatelessWidget {
 }
 
 class _FailureView extends ConsumerWidget {
-  const _FailureView({
-    required this.message,
-  });
+  const _FailureView({required this.message});
 
   final String message;
 
@@ -226,10 +214,7 @@ class _FailureView extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
+            Text(message, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: () => ref

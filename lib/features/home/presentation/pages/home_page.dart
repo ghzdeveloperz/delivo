@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:delivo/app/router/app_routes.dart';
 import 'package:delivo/app/theme/app_colors.dart';
 import 'package:delivo/app/theme/app_spacing.dart';
@@ -7,19 +9,71 @@ import 'package:delivo/features/home/presentation/widgets/home_stat_item.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  static const Duration _returnRefreshDelay =
+      Duration(milliseconds: 650);
+
+  Timer? _refreshTimer;
+  HomeSummary _visibleSummary = HomeSummary.empty;
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _openAndRefresh(String route) async {
+    await Navigator.of(context).pushNamed(route);
+
+    if (!mounted) {
+      return;
+    }
+
+    _scheduleRefresh();
+  }
+
+  void _scheduleRefresh() {
+    _refreshTimer?.cancel();
+
+    _refreshTimer = Timer(
+      _returnRefreshDelay,
+      () {
+        if (mounted) {
+          ref.invalidate(homeSummaryProvider);
+        }
+      },
+    );
+  }
+
+  Future<void> _refreshNow() async {
+    _refreshTimer?.cancel();
+    ref.invalidate(homeSummaryProvider);
+    await ref.read(homeSummaryProvider.future);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final summaryAsync = ref.watch(homeSummaryProvider);
-    final summary = summaryAsync.value ?? HomeSummary.empty;
+    final latestSummary = summaryAsync.value;
+
+    if (latestSummary != null && latestSummary != _visibleSummary) {
+      _visibleSummary = latestSummary;
+    }
+
+    final summary = _visibleSummary;
     final theme = Theme.of(context);
 
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => ref.refresh(homeSummaryProvider.future),
+          onRefresh: _refreshNow,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
@@ -67,13 +121,9 @@ class HomePage extends ConsumerWidget {
                     ),
                   ),
                   child: FilledButton(
-                    onPressed: () async {
-                      await Navigator.of(context).pushNamed(
-                        AppRoutes.galleryPermission,
-                      );
-
-                      ref.invalidate(homeSummaryProvider);
-                    },
+                    onPressed: () => _openAndRefresh(
+                      AppRoutes.triage,
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -91,7 +141,8 @@ class HomePage extends ConsumerWidget {
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
-                  if (summaryAsync.isLoading)
+                  if (summaryAsync.isLoading &&
+                      summaryAsync.value == null)
                     const SizedBox.square(
                       dimension: 18,
                       child: CircularProgressIndicator(
@@ -113,21 +164,32 @@ class HomePage extends ConsumerWidget {
                     icon: Icons.photo_library_outlined,
                     label: 'Não revisadas',
                     value: '${summary.unreviewedCount}',
+                    animatedValue: summary.unreviewedCount,
                   ),
                   HomeStatItem(
                     icon: Icons.star_outline_rounded,
                     label: 'Favoritas',
                     value: '${summary.favoriteCount}',
+                    animatedValue: summary.favoriteCount,
+                    onTap: () => _openAndRefresh(
+                      AppRoutes.favorites,
+                    ),
                   ),
                   HomeStatItem(
                     icon: Icons.delete_outline_rounded,
                     label: 'Para revisar',
                     value: '${summary.markedForDeletionCount}',
+                    animatedValue: summary.markedForDeletionCount,
+                    onTap: () => _openAndRefresh(
+                      AppRoutes.markedForDeletion,
+                    ),
                   ),
                   HomeStatItem(
                     icon: Icons.sd_storage_outlined,
                     label: 'Espaço estimado',
-                    value: _formatBytes(summary.estimatedBytesToFree),
+                    value: _formatBytes(
+                      summary.estimatedBytesToFree,
+                    ),
                   ),
                 ],
               ),
@@ -143,7 +205,9 @@ class HomePage extends ConsumerWidget {
                 icon: Icons.delete_sweep_outlined,
                 title: 'Revisar exclusão',
                 subtitle: 'Nenhuma foto é excluída sem sua confirmação',
-                onTap: () {},
+                onTap: () => _openAndRefresh(
+                  AppRoutes.markedForDeletion,
+                ),
               ),
             ],
           ),

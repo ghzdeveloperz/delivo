@@ -10,33 +10,27 @@ final galleryDataSourceProvider = Provider<GalleryDataSource>(
   (ref) => const PhotoManagerGalleryDataSource(),
 );
 
-final galleryRepositoryProvider = Provider<GalleryRepository>(
-  (ref) {
-    return PhotoManagerGalleryRepository(
-      dataSource: ref.watch(galleryDataSourceProvider),
-      logger: ref.watch(appLoggerProvider),
-    );
-  },
-);
+final galleryRepositoryProvider = Provider<GalleryRepository>((ref) {
+  return PhotoManagerGalleryRepository(
+    dataSource: ref.watch(galleryDataSourceProvider),
+    logger: ref.watch(appLoggerProvider),
+  );
+});
 
-final galleryChangeObserverProvider = Provider<GalleryChangeObserver>(
-  (ref) {
-    final observer = PhotoManagerGalleryChangeObserver();
+final galleryChangeObserverProvider = Provider<GalleryChangeObserver>((ref) {
+  final observer = PhotoManagerGalleryChangeObserver();
 
-    ref.onDispose(() {
-      observer.dispose();
-    });
+  ref.onDispose(() {
+    observer.dispose();
+  });
 
-    return observer;
-  },
-);
+  return observer;
+});
 
-final galleryChangesProvider = StreamProvider<void>(
-  (ref) async* {
-    final observer = ref.watch(galleryChangeObserverProvider);
+final galleryChangesProvider = StreamProvider<void>((ref) async* {
+  final observer = ref.watch(galleryChangeObserverProvider);
 
-    await observer.start();
+  await observer.start();
 
-    yield* observer.changes;
-  },
-);
+  yield* observer.changes;
+});

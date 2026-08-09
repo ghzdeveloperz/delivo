@@ -1,13 +1,21 @@
+import 'dart:math' as math;
+
 import 'package:delivo/features/gallery_access/domain/entities/gallery_permission.dart';
 import 'package:delivo/features/gallery_access/presentation/providers/gallery_providers.dart';
 import 'package:delivo/features/home/domain/entities/home_summary.dart';
+import 'package:delivo/features/triage/domain/entities/photo_decision.dart';
+import 'package:delivo/features/triage/presentation/providers/triage_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final homeSummaryProvider = FutureProvider<HomeSummary>((ref) async {
   ref.watch(galleryChangesProvider);
 
-  final repository = ref.watch(galleryRepositoryProvider);
-  final permissionResult = await repository.getPermissionStatus();
+  final galleryRepository = ref.watch(galleryRepositoryProvider);
+  final decisionRepository =
+      ref.watch(photoDecisionRepositoryProvider);
+
+  final permissionResult =
+      await galleryRepository.getPermissionStatus();
 
   final permission = permissionResult.fold<GalleryPermission?>(
     onSuccess: (value) => value,
@@ -19,15 +27,42 @@ final homeSummaryProvider = FutureProvider<HomeSummary>((ref) async {
     return HomeSummary.empty;
   }
 
-  final countResult = await repository.getPhotoCount();
+  final photoCountResult = await galleryRepository.getPhotoCount();
+  final reviewedResult =
+      await decisionRepository.getReviewedAssetIds();
+  final favoriteResult =
+      await decisionRepository.countByDecision(
+    PhotoDecision.favorite,
+  );
+  final deletionResult =
+      await decisionRepository.countByDecision(
+    PhotoDecision.markedForDeletion,
+  );
 
-  return countResult.fold(
-    onSuccess: (count) => HomeSummary(
-      unreviewedCount: count,
-      favoriteCount: 0,
-      markedForDeletionCount: 0,
-      estimatedBytesToFree: 0,
-    ),
-    onFailure: (_) => HomeSummary.empty,
+  final photoCount = photoCountResult.fold<int>(
+    onSuccess: (value) => value,
+    onFailure: (_) => 0,
+  );
+
+  final reviewedCount = reviewedResult.fold<int>(
+    onSuccess: (value) => value.length,
+    onFailure: (_) => 0,
+  );
+
+  final favoriteCount = favoriteResult.fold<int>(
+    onSuccess: (value) => value,
+    onFailure: (_) => 0,
+  );
+
+  final markedCount = deletionResult.fold<int>(
+    onSuccess: (value) => value,
+    onFailure: (_) => 0,
+  );
+
+  return HomeSummary(
+    unreviewedCount: math.max(0, photoCount - reviewedCount),
+    favoriteCount: favoriteCount,
+    markedForDeletionCount: markedCount,
+    estimatedBytesToFree: 0,
   );
 });

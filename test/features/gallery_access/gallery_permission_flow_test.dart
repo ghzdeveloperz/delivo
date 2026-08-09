@@ -28,9 +28,7 @@ void main() {
 
     addTearDown(container.dispose);
 
-    final controller = container.read(
-      galleryAccessControllerProvider.notifier,
-    );
+    final controller = container.read(galleryAccessControllerProvider.notifier);
 
     final granted = await controller.requestPermission();
 
@@ -93,9 +91,7 @@ void main() {
 }
 
 final class _FakeGalleryRepository implements GalleryRepository {
-  _FakeGalleryRepository({
-    required this.permission,
-  });
+  _FakeGalleryRepository({required this.permission});
 
   final GalleryPermission permission;
 
@@ -124,13 +120,7 @@ final class _FakeGalleryRepository implements GalleryRepository {
     required int page,
     required int pageSize,
   }) async {
-    return Success(
-      GalleryPage(
-        photos: const [],
-        page: page,
-        hasMore: false,
-      ),
-    );
+    return Success(GalleryPage(photos: const [], page: page, hasMore: false));
   }
 
   @override

@@ -19,11 +19,7 @@ final class TestAppLogger implements AppLogger {
   }
 
   @override
-  void error(
-    String message, {
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
+  void error(String message, {Object? error, StackTrace? stackTrace}) {
     messages.add(message);
   }
 }

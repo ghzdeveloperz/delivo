@@ -18,9 +18,7 @@ class GalleryPermissionPage extends ConsumerWidget {
     final isLoading = state is GalleryAccessRequestingPermission;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: const BackButton(),
-      ),
+      appBar: AppBar(leading: const BackButton()),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -79,8 +77,8 @@ class GalleryPermissionPage extends ConsumerWidget {
                   onPressed: isLoading
                       ? null
                       : () => ref
-                          .read(galleryAccessControllerProvider.notifier)
-                          .openSettings(),
+                            .read(galleryAccessControllerProvider.notifier)
+                            .openSettings(),
                   child: const Text('Abrir configurações'),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -110,9 +108,9 @@ class GalleryPermissionPage extends ConsumerWidget {
 
                           ref.invalidate(homeSummaryProvider);
 
-                          await Navigator.of(context).pushReplacementNamed(
-                            AppRoutes.galleryPreview,
-                          );
+                          await Navigator.of(
+                            context,
+                          ).pushReplacementNamed(AppRoutes.galleryPreview);
                         },
                   child: isLoading
                       ? const SizedBox.square(
@@ -173,19 +171,13 @@ class _PrivacyItem extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(
-          icon,
-          color: theme.colorScheme.primary,
-        ),
+        Icon(icon, color: theme.colorScheme.primary),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: theme.textTheme.titleSmall,
-              ),
+              Text(title, style: theme.textTheme.titleSmall),
               const SizedBox(height: AppSpacing.xxs),
               Text(
                 description,

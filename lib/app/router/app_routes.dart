@@ -4,4 +4,7 @@ abstract final class AppRoutes {
   static const String home = '/';
   static const String galleryPermission = '/gallery-permission';
   static const String galleryPreview = '/gallery-preview';
+  static const String triage = '/triage';
+  static const String favorites = '/favorites';
+  static const String markedForDeletion = '/marked-for-deletion';
 }

@@ -14,8 +14,8 @@ final class PhotoManagerGalleryRepository implements GalleryRepository {
   const PhotoManagerGalleryRepository({
     required GalleryDataSource dataSource,
     required AppLogger logger,
-  })  : _dataSource = dataSource,
-        _logger = logger;
+  }) : _dataSource = dataSource,
+       _logger = logger;
 
   final GalleryDataSource _dataSource;
   final AppLogger _logger;
@@ -90,11 +90,7 @@ final class PhotoManagerGalleryRepository implements GalleryRepository {
 
       if (paths.isEmpty) {
         return Success(
-          GalleryPage(
-            photos: const [],
-            page: page,
-            hasMore: false,
-          ),
+          GalleryPage(photos: const [], page: page, hasMore: false),
         );
       }
 

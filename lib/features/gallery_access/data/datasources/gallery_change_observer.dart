@@ -14,8 +14,7 @@ abstract interface class GalleryChangeObserver {
 final class PhotoManagerGalleryChangeObserver implements GalleryChangeObserver {
   PhotoManagerGalleryChangeObserver();
 
-  final StreamController<void> _controller =
-      StreamController<void>.broadcast();
+  final StreamController<void> _controller = StreamController<void>.broadcast();
 
   bool _started = false;
 

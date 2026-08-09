@@ -50,9 +50,7 @@ final class GalleryAccessReady extends GalleryAccessState {
 }
 
 final class GalleryAccessEmpty extends GalleryAccessState {
-  const GalleryAccessEmpty({
-    required this.permission,
-  });
+  const GalleryAccessEmpty({required this.permission});
 
   final GalleryPermission permission;
 }

@@ -1,7 +1,10 @@
 import 'package:delivo/app/router/app_routes.dart';
+import 'package:delivo/features/deletion_review/presentation/pages/marked_for_deletion_page.dart';
+import 'package:delivo/features/favorites/presentation/pages/favorites_page.dart';
 import 'package:delivo/features/gallery_access/presentation/gallery_preview_page.dart';
 import 'package:delivo/features/home/presentation/pages/home_page.dart';
 import 'package:delivo/features/onboarding/presentation/gallery_permission_page.dart';
+import 'package:delivo/features/triage/presentation/pages/triage_page.dart';
 import 'package:flutter/material.dart';
 
 abstract final class AppRouter {
@@ -19,6 +22,18 @@ abstract final class AppRouter {
       ),
       AppRoutes.galleryPreview => MaterialPageRoute<void>(
         builder: (_) => const GalleryPreviewPage(),
+        settings: settings,
+      ),
+      AppRoutes.triage => MaterialPageRoute<void>(
+        builder: (_) => const TriagePage(),
+        settings: settings,
+      ),
+      AppRoutes.favorites => MaterialPageRoute<void>(
+        builder: (_) => const FavoritesPage(),
+        settings: settings,
+      ),
+      AppRoutes.markedForDeletion => MaterialPageRoute<void>(
+        builder: (_) => const MarkedForDeletionPage(),
         settings: settings,
       ),
       _ => MaterialPageRoute<void>(

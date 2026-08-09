@@ -30,10 +30,7 @@ void main() {
       final result = await repository.getPermissionStatus();
 
       expect(
-        result.fold(
-          onSuccess: (value) => value,
-          onFailure: (_) => null,
-        ),
+        result.fold(onSuccess: (value) => value, onFailure: (_) => null),
         GalleryPermission.authorized,
       );
     });
@@ -44,10 +41,7 @@ void main() {
       final result = await repository.getPermissionStatus();
 
       expect(
-        result.fold(
-          onSuccess: (value) => value,
-          onFailure: (_) => null,
-        ),
+        result.fold(onSuccess: (value) => value, onFailure: (_) => null),
         GalleryPermission.limited,
       );
     });
@@ -58,10 +52,7 @@ void main() {
       final result = await repository.getPermissionStatus();
 
       expect(
-        result.fold(
-          onSuccess: (value) => value,
-          onFailure: (_) => null,
-        ),
+        result.fold(onSuccess: (value) => value, onFailure: (_) => null),
         GalleryPermission.denied,
       );
     });
@@ -90,10 +81,7 @@ void main() {
       final result = await repository.getPhotoCount();
 
       expect(
-        result.fold(
-          onSuccess: (value) => value,
-          onFailure: (_) => -1,
-        ),
+        result.fold(onSuccess: (value) => value, onFailure: (_) => -1),
         347,
       );
     });
