@@ -1,5 +1,7 @@
+import 'package:delivo/app/router/app_routes.dart';
 import 'package:delivo/app/theme/app_colors.dart';
 import 'package:delivo/app/theme/app_spacing.dart';
+import 'package:delivo/features/home/domain/entities/home_summary.dart';
 import 'package:delivo/features/home/presentation/providers/home_summary_provider.dart';
 import 'package:delivo/features/home/presentation/widgets/home_stat_item.dart';
 import 'package:flutter/material.dart';
@@ -10,109 +12,141 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summary = ref.watch(homeSummaryProvider);
+    final summaryAsync = ref.watch(homeSummaryProvider);
+    final summary = summaryAsync.value ?? HomeSummary.empty;
     final theme = Theme.of(context);
 
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.xxl,
-          ),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text('Delivo', style: theme.textTheme.headlineMedium),
-                ),
-                IconButton(
-                  onPressed: () {},
-                  tooltip: 'Configurações',
-                  icon: const Icon(Icons.settings_outlined),
-                ),
-              ],
+        child: RefreshIndicator(
+          onRefresh: () => ref.refresh(homeSummaryProvider.future),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.xxl,
             ),
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              'Sua galeria, mais leve.',
-              style: theme.textTheme.headlineLarge,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'Revise suas fotos com segurança e decida o que manter, organizar ou revisar para exclusão.',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            SizedBox(
-              height: 56,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: AppColors.brandGradient,
-                  borderRadius: BorderRadius.all(Radius.circular(14)),
-                ),
-                child: FilledButton(
-                  onPressed: () {},
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Delivo',
+                      style: theme.textTheme.headlineMedium,
+                    ),
                   ),
-                  child: const Text('Iniciar triagem'),
+                  IconButton(
+                    onPressed: () {},
+                    tooltip: 'Configurações',
+                    icon: const Icon(Icons.settings_outlined),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Text(
+                'Sua galeria, mais leve.',
+                style: theme.textTheme.headlineLarge,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                'Revise suas fotos com segurança e decida o que manter, organizar ou revisar para exclusão.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Text('Visão geral', style: theme.textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.md),
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: AppSpacing.sm,
-              mainAxisSpacing: AppSpacing.sm,
-              childAspectRatio: 1.55,
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              children: [
-                HomeStatItem(
-                  icon: Icons.photo_library_outlined,
-                  label: 'Não revisadas',
-                  value: '${summary.unreviewedCount}',
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                height: 56,
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.brandGradient,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(14),
+                    ),
+                  ),
+                  child: FilledButton(
+                    onPressed: () async {
+                      await Navigator.of(context).pushNamed(
+                        AppRoutes.galleryPermission,
+                      );
+
+                      ref.invalidate(homeSummaryProvider);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ),
+                    child: const Text('Iniciar triagem'),
+                  ),
                 ),
-                HomeStatItem(
-                  icon: Icons.star_outline_rounded,
-                  label: 'Favoritas',
-                  value: '${summary.favoriteCount}',
-                ),
-                HomeStatItem(
-                  icon: Icons.delete_outline_rounded,
-                  label: 'Para revisar',
-                  value: '${summary.markedForDeletionCount}',
-                ),
-                HomeStatItem(
-                  icon: Icons.sd_storage_outlined,
-                  label: 'Espaço estimado',
-                  value: _formatBytes(summary.estimatedBytesToFree),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            _NavigationTile(
-              icon: Icons.folder_outlined,
-              title: 'Pastas',
-              subtitle: 'Organize fotos para decidir depois',
-              onTap: () {},
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            _NavigationTile(
-              icon: Icons.delete_sweep_outlined,
-              title: 'Revisar exclusão',
-              subtitle: 'Nenhuma foto é excluída sem sua confirmação',
-              onTap: () {},
-            ),
-          ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Visão geral',
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ),
+                  if (summaryAsync.isLoading)
+                    const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              GridView.count(
+                crossAxisCount: 2,
+                crossAxisSpacing: AppSpacing.sm,
+                mainAxisSpacing: AppSpacing.sm,
+                childAspectRatio: 1.55,
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                children: [
+                  HomeStatItem(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Não revisadas',
+                    value: '${summary.unreviewedCount}',
+                  ),
+                  HomeStatItem(
+                    icon: Icons.star_outline_rounded,
+                    label: 'Favoritas',
+                    value: '${summary.favoriteCount}',
+                  ),
+                  HomeStatItem(
+                    icon: Icons.delete_outline_rounded,
+                    label: 'Para revisar',
+                    value: '${summary.markedForDeletionCount}',
+                  ),
+                  HomeStatItem(
+                    icon: Icons.sd_storage_outlined,
+                    label: 'Espaço estimado',
+                    value: _formatBytes(summary.estimatedBytesToFree),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              _NavigationTile(
+                icon: Icons.folder_outlined,
+                title: 'Pastas',
+                subtitle: 'Organize fotos para decidir depois',
+                onTap: () {},
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              _NavigationTile(
+                icon: Icons.delete_sweep_outlined,
+                title: 'Revisar exclusão',
+                subtitle: 'Nenhuma foto é excluída sem sua confirmação',
+                onTap: () {},
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -160,18 +194,26 @@ class _NavigationTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            border: Border.all(color: theme.colorScheme.outline),
+            border: Border.all(
+              color: theme.colorScheme.outline,
+            ),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             children: [
-              Icon(icon, color: theme.colorScheme.primary),
+              Icon(
+                icon,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.titleMedium),
+                    Text(
+                      title,
+                      style: theme.textTheme.titleMedium,
+                    ),
                     const SizedBox(height: AppSpacing.xxs),
                     Text(
                       subtitle,

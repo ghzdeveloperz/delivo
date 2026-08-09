@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^3.3.2
+  photo_manager: ^3.12.0
 
 dev_dependencies:
   flutter_test:

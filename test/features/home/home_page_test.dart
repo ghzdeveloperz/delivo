@@ -10,11 +10,13 @@ void main() {
       ProviderScope(
         overrides: [
           homeSummaryProvider.overrideWithValue(
-            const HomeSummary(
-              unreviewedCount: 120,
-              favoriteCount: 18,
-              markedForDeletionCount: 7,
-              estimatedBytesToFree: 25 * 1024 * 1024,
+            const AsyncValue.data(
+              HomeSummary(
+                unreviewedCount: 120,
+                favoriteCount: 18,
+                markedForDeletionCount: 7,
+                estimatedBytesToFree: 25 * 1024 * 1024,
+              ),
             ),
           ),
         ],
